@@ -2,6 +2,8 @@
 .env
 command-tracker.json
 *.pyc
-*.pt
+*.pth
 *.mp4
 *.avi
+
+settings*
