@@ -1,4 +1,5 @@
 from aio_pika import connect_robust, RobustConnection, RobustChannel, Message, DeliveryMode
+from fsspec import Callback
 
 from config.constants import Messages, RabbitMQConfig
 from config.env import get_config
@@ -10,6 +11,13 @@ class RabbitMQManager:
     def __init__(self):
         self.connection: RobustConnection | None = None
         self.channel: RobustChannel | None = None
+
+    async def __aenter__(self):
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     async def connect(self):
         if self.connection is not None:
@@ -32,7 +40,7 @@ class RabbitMQManager:
             durable=True,
         )
 
-    async def consume(self, queue_name: str, callback):
+    async def consume(self, queue_name: str, callback: Callback):
         if self.channel is None:
             raise RuntimeError(Messages.Error.RABBITMQ_NOT_INIT)
 
@@ -55,10 +63,3 @@ class RabbitMQManager:
         if self.connection:
             await self.connection.close()
             self.connection = None
-
-    async def __aenter__(self):
-        await self.connect()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
