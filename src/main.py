@@ -1,29 +1,25 @@
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-from multiprocessing import Process
+import asyncio
+import signal
 
-from rabbitmq.consume import consume_message
-from config.rabbitmq import create_connection
+from rabbitmq.rabbitmq_manager import RabbitMQManager
+from temp_callback import on_message
+from config.constants import RabbitMQConfig
 
-def worker():
-    connection, channel = create_connection()
+async def main():
+    shutdown_event = asyncio.Event()
 
-    channel.basic_qos(prefetch_count=1)
-    consume_message(channel)
-    connection.close()
+    def signal_handler(*_):
+        shutdown_event.set()
 
-def main():
-    workers = []
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-    for _ in range(3):
-        p = Process(target=worker)
-
-        p.start()
-        workers.append(p)
-
-    for p in workers:
-        p.join()
+    async with RabbitMQManager() as rabbitmq:
+        await rabbitmq.consume(RabbitMQConfig.VIDEO_PROCESS, on_message)
+        await shutdown_event.wait()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
