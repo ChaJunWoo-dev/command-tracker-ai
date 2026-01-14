@@ -4,9 +4,10 @@ load_dotenv(override=True)
 import asyncio
 import signal
 
-from rabbitmq.rabbitmq_manager import RabbitMQManager
-from temp_callback import on_message
+from infra.rabbitmq_client import RabbitMQClient
+from worker.handlers import on_message
 from config.constants import RabbitMQConfig
+
 
 async def main():
     shutdown_event = asyncio.Event()
@@ -17,9 +18,10 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    async with RabbitMQManager() as rabbitmq:
+    async with RabbitMQClient() as rabbitmq:
         await rabbitmq.consume(RabbitMQConfig.VIDEO_PROCESS, on_message)
         await shutdown_event.wait()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

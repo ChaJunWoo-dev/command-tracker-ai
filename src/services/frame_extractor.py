@@ -1,6 +1,7 @@
 import av
 from io import BytesIO
 
+
 def extract_frames(video_bytes):
     byte_stream = BytesIO(video_bytes)
     container = av.open(byte_stream)

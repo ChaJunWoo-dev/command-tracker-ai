@@ -1,7 +1,9 @@
 import math
 
+
 def dist(p1, p2):
     return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
 
 def angle_between_points(a, b, c):
     ba = (a[0] - b[0], a[1] - b[1])
@@ -10,6 +12,7 @@ def angle_between_points(a, b, c):
     angle = math.acos(max(min(cos_angle, 1), -1))
 
     return math.degrees(angle)
+
 
 def label_frames(pose_data, frame_id, sit_punch_frames, uppercut_frames, hit_down_frames):
     keypoints = pose_data[0].pred_instances.keypoints[0]

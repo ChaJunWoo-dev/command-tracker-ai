@@ -2,12 +2,12 @@ from aio_pika import connect_robust, RobustConnection, RobustChannel, Message, D
 from fsspec import Callback
 
 from config.constants import Messages, RabbitMQConfig
-from config.env import get_config
+from config.settings import get_config
 
 config = get_config()
 
 
-class RabbitMQManager:
+class RabbitMQClient:
     def __init__(self):
         self.connection: RobustConnection | None = None
         self.channel: RobustChannel | None = None

@@ -21,9 +21,9 @@ def adapt_mmdet_pipeline(cfg: ConfigDict) -> ConfigDict:
     return cfg
 
 detect_config = "mmdetection/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
-detect_checkpoint = "rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
+detect_checkpoint = "models/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
 pose_config = "mmpose/configs/body_2d_keypoint/rtmpose/body8/rtmpose-l_8xb512-700e_body8-halpe26-384x288.py"
-pose_checkpoint = "rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth"
+pose_checkpoint = "models/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth"
 
 pose_model = init_model(pose_config, pose_checkpoint, device="cuda:0")
 detector = init_detector(detect_config, detect_checkpoint, device="cuda:0")

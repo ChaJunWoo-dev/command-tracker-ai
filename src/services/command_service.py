@@ -18,6 +18,7 @@ def filter_frame(frames):
 
     return filtered_frames
 
+
 def get_commands(sit_punch_frames, uppercut_frames, hit_down_frames):
     commands = []
     fps = 30

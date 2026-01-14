@@ -1,12 +1,12 @@
 import aioboto3
 from botocore.config import Config
-from config.env import get_config
+from config.settings import get_config
 from config.constants import S3Config
 
 config = get_config()
 
 
-class S3Manager:
+class S3Client:
     def __init__(self):
         self._session = aioboto3.Session()
         self._region = config.aws.region

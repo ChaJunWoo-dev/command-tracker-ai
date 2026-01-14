@@ -1,4 +1,7 @@
+import ffmpeg
+import io
 from config.constants import MESSAGES
+
 
 def frames_to_timecode(frame, fps):
     total_seconds = frame / fps
@@ -8,6 +11,7 @@ def frames_to_timecode(frame, fps):
     cs = int((total_seconds - int(total_seconds)) * 100)
 
     return f"{h}:{m:02}:{s:02}.{cs:02}"
+
 
 def make_stack_ass(commands, file_name, fps=30, max_stack=10):
     try:
@@ -48,3 +52,23 @@ def make_stack_ass(commands, file_name, fps=30, max_stack=10):
             f.write(header + events)
     except:
         raise RuntimeError(MESSAGES.ERROR.FAILED_CREATE_SUBTITLE)
+
+
+def insert_subtitle_to_video(video_bytes, subtitle_path):
+    try:
+        input_video = ffmpeg.input("pipe:0")
+
+        output, _ = (
+            input_video
+            .filter("subtitles", subtitle_path)
+            .output("pipe:1",
+                    vcodec="libvpx-vp9",
+                    acodec="libvorbis",
+                    format="webm")
+            .run(input=video_bytes, capture_stdout=True)
+        )
+
+        return io.BytesIO(output)
+
+    except:
+        raise RuntimeError(MESSAGES.ERROR.FAILED_INSERT_SUBTITLE)
