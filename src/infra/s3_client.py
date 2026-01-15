@@ -1,7 +1,7 @@
 import aioboto3
 from botocore.config import Config
-from config.settings import get_config
-from config.constants import S3Config
+from src.config.settings import get_config
+from src.config.constants import S3Config
 
 config = get_config()
 
@@ -25,18 +25,11 @@ class S3Client:
             await self._client.__aexit__(exc_type, exc, tb)
             self._client = None
 
-    async def download_stream(self, blob_s3_key: str, bucket: str):
-        obj = await self._client.get_object(
-            Bucket=bucket,
-            Key=blob_s3_key,
-        )
-        body = obj["Body"]
+    async def download_file(self, s3_key: str, dest_path: str, bucket: str) -> None:
+        await self._client.download_file(bucket, s3_key, dest_path)
 
-        while True:
-            chunk = await body.read(1024 * 1024)
-            if not chunk:
-                break
-            yield chunk
+    async def upload_file(self, src_path: str, s3_key: str, bucket: str) -> None:
+        await self._client.upload_file(src_path, bucket, s3_key)
 
     async def get_presigned_url(self, blob_s3_key: str, bucket: str) -> str:
         return await self._client.generate_presigned_url(
@@ -47,57 +40,3 @@ class S3Client:
             },
             ExpiresIn=S3Config.SIGNED_URL_EXPIRE,
         )
-
-    async def upload_stream(self, blob_s3_key: str, stream, bucket: str) -> str:
-        upload_id = None
-        try:
-            response = await self._client.create_multipart_upload(
-                Bucket=bucket,
-                Key=blob_s3_key,
-                ContentType="video/webm",
-            )
-            upload_id = response["UploadId"]
-
-            parts = []
-            part_number = 1
-
-            async for chunk in stream:
-                if not chunk:
-                    continue
-
-                part_response = await self._client.upload_part(
-                    Bucket=bucket,
-                    Key=blob_s3_key,
-                    PartNumber=part_number,
-                    UploadId=upload_id,
-                    Body=chunk,
-                )
-
-                parts.append(
-                    {
-                        "PartNumber": part_number,
-                        "ETag": part_response["ETag"],
-                    }
-                )
-                part_number += 1
-
-            await self._client.complete_multipart_upload(
-                Bucket=bucket,
-                Key=blob_s3_key,
-                UploadId=upload_id,
-                MultipartUpload={"Parts": parts},
-            )
-
-            return f"s3://{bucket}/{blob_s3_key}"
-
-        except Exception:
-            if upload_id:
-                try:
-                    await self._client.abort_multipart_upload(
-                        Bucket=bucket,
-                        Key=blob_s3_key,
-                        UploadId=upload_id,
-                    )
-                except Exception:
-                    pass
-            raise

@@ -32,3 +32,7 @@ class ResultCode:
 
     class Failed:
         ANALYZE = "FAILED_ANALYZE"
+
+
+class TempDir:
+    BASE_DIR = None
