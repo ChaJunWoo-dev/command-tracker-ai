@@ -6,8 +6,7 @@ class FFmpegClient:
     async def cut(self, input_path: Path, output_path: Path, start: float, end: float) -> None:
         (
             ffmpeg
-            .input(str(input_path), ss=start, to=end)
-            .output(str(output_path), c="copy")
-            .overwrite_output()
+            .input(str(input_path), ss=start, t=end - start)
+            .output(str(output_path))
             .run(quiet=True)
         )

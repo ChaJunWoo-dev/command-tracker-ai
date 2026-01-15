@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from src.config.constants import TempDir
+from config.constants import TempDir
 
 
 class TempStorage:

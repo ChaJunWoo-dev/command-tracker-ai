@@ -1,7 +1,7 @@
 import aioboto3
 from botocore.config import Config
-from src.config.settings import get_config
-from src.config.constants import S3Config
+from config.settings import get_config
+from config.constants import S3Config
 
 config = get_config()
 

@@ -3,6 +3,7 @@ load_dotenv(override=True)
 
 import asyncio
 import signal
+from functools import partial
 
 from infra.rabbitmq_client import RabbitMQClient
 from worker.handlers import on_message
@@ -19,7 +20,10 @@ async def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     async with RabbitMQClient() as rabbitmq:
-        await rabbitmq.consume(RabbitMQConfig.VIDEO_PROCESS, on_message)
+        await rabbitmq.consume(
+            RabbitMQConfig.VIDEO_PROCESS,
+            partial(on_message, rabbitmq=rabbitmq)
+        )
         await shutdown_event.wait()
 
 

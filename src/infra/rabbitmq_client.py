@@ -1,5 +1,6 @@
+from typing import Callable
 from aio_pika import connect_robust, RobustConnection, RobustChannel, Message, DeliveryMode
-from fsspec import Callback
+import json
 
 from config.constants import Messages, RabbitMQConfig
 from config.settings import get_config
@@ -40,7 +41,7 @@ class RabbitMQClient:
             durable=True,
         )
 
-    async def consume(self, queue_name: str, callback: Callback):
+    async def consume(self, queue_name: str, callback: Callable):
         if self.channel is None:
             raise RuntimeError(Messages.Error.RABBITMQ_NOT_INIT)
 
@@ -52,7 +53,10 @@ class RabbitMQClient:
             raise RuntimeError(Messages.Error.RABBITMQ_NOT_INIT)
 
         await self.channel.default_exchange.publish(
-            Message(body=message.encode(), delivery_mode=DeliveryMode.PERSISTENT),
+            Message(
+                body=json.dumps(message).encode(),
+                delivery_mode=DeliveryMode.PERSISTENT
+            ),
             routing_key=routing_key
         )
 
