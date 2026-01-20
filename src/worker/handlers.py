@@ -1,6 +1,4 @@
 import json
-import shutil
-from pathlib import Path
 from aio_pika import IncomingMessage
 
 from infra.s3_client import S3Client
@@ -74,6 +72,16 @@ async def on_message(
                     raise
                 except Exception as e:
                     raise AppError(ErrorCode.ANALYZE_FAILED, Messages.Error.ANALYZE_FAILED)
+
+                try:
+                    await ffmpeg.overlay_subtitles(output_path, final_path, subtitles)
+                except Exception as e:
+                    raise AppError(ErrorCode.CUT_FAILED, Messages.Error.CUT_FAILED)
+
+                try:
+                    await s3.upload_file(str(final_path), processed_s3_key, config.aws.bucket_name)
+                except Exception as e:
+                    raise AppError(ErrorCode.UPLOAD_FAILED, Messages.Error.UPLOAD_FAILED)
 
             except AppError as e:
                 message = { "email": data["email"], "detail": e.detail }
