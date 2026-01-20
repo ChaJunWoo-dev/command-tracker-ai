@@ -43,14 +43,14 @@ class RabbitMQClient:
 
     async def consume(self, queue_name: str, callback: Callable):
         if self.channel is None:
-            raise RuntimeError(Messages.Error.RABBITMQ_NOT_INIT)
+            raise RuntimeError(Messages.Error.RABBITMQ_NOT_READY)
 
         queue = await self.channel.get_queue(queue_name)
         await queue.consume(callback)
 
     async def publish(self, message: str, routing_key: str):
         if self.channel is None:
-            raise RuntimeError(Messages.Error.RABBITMQ_NOT_INIT)
+            raise RuntimeError(Messages.Error.RABBITMQ_NOT_READY)
 
         await self.channel.default_exchange.publish(
             Message(

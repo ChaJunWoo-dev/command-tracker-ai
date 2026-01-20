@@ -1,70 +1,66 @@
-from mmdet.apis import init_detector, inference_detector
-from mmpose.apis import init_model, inference_topdown
-from mmengine.registry import init_default_scope
-from mmpose.utils.typing import ConfigDict
+import cv2
+from pathlib import Path
+from typing import Generator
 
-init_default_scope("mmdet")
-init_default_scope("mmpose")
+from ai.detector import PersonDetector
+from ai.pose_estimator import PoseEstimator
+from services.command_service import MotionRecognizer
 
-def adapt_mmdet_pipeline(cfg: ConfigDict) -> ConfigDict:
-    from mmdet.datasets import transforms
 
-    if "test_dataloader" not in cfg:
-        return cfg
+class VideoAnalyzer:
+    def __init__(
+        self,
+        detector: PersonDetector,
+        pose_estimator: PoseEstimator,
+        character: str,
+        position: str = "left",
+    ):
+        self.detector = detector
+        self.pose_estimator = pose_estimator
+        self.position = position
+        self.motion_recognizer = MotionRecognizer(character, position)
 
-    pipeline = cfg.test_dataloader.dataset.pipeline
+    def analyze(self, video_path: Path) -> Generator[dict, None, None]:
+        """
+        영상을 분석하여 프레임별 poses와 발동된 커맨드를 반환
+        """
+        cap = cv2.VideoCapture(str(video_path))
+        try:
+            frame_idx = 0
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-    for trans in pipeline:
-        if trans["type"] in dir(transforms):
-            trans["type"] = "mmdet." + trans["type"]
+                bboxes = self.detector.detect(frame, max_persons=2)
+                target_bbox = self.select_target_bbox(bboxes)
 
-    return cfg
+                command = None
+                if target_bbox is not None:
+                    poses = self.pose_estimator.estimate(frame, target_bbox)
+                    if len(poses) > 0:
+                        command = self.motion_recognizer.extract(poses[0])
 
-detect_config = "mmdetection/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
-detect_checkpoint = "models/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
-pose_config = "mmpose/configs/body_2d_keypoint/rtmpose/body8/rtmpose-l_8xb512-700e_body8-halpe26-384x288.py"
-pose_checkpoint = "models/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth"
+                yield {
+                    "frame_idx": frame_idx,
+                    "command": command,
+                }
 
-pose_model = init_model(pose_config, pose_checkpoint, device="cuda:0")
-detector = init_detector(detect_config, detect_checkpoint, device="cuda:0")
-detector.cfg = adapt_mmdet_pipeline(detector.cfg)
+                frame_idx += 1
+        finally:
+            cap.release()
 
-def analyze_frame(frame, side):
-    mmdet_results = inference_detector(detector, frame)
-    instances = mmdet_results.pred_instances
-    bboxes = instances.bboxes.cpu().numpy()
-    scores = instances.scores.cpu().numpy()
+    def select_target_bbox(self, bboxes):
+        """position에 따라 분석할 캐릭터의 bbox 선택"""
+        if len(bboxes) == 0:
+            return None
+        if len(bboxes) == 1:
+            return bboxes[:1]
 
-    person_results = []
+        centers = [(bbox[0] + bbox[2]) / 2 for bbox in bboxes]
+        if self.position == "left":
+            idx = centers.index(min(centers))
+        else:
+            idx = centers.index(max(centers))
 
-    for bbox, score in zip(bboxes, scores):
-        if score <= 0.3:
-            continue
-
-        x1, y1, x2, y2 = bbox[:4]
-        area = (x2 - x1) * (y2 - y1)
-        person_results.append({
-            "bbox": [x1, y1, x2, y2],
-            "bbox_score": float(score),
-            "area": area
-        })
-
-    if len(person_results) == 0:
-        return []
-
-    person_results = sorted(person_results, key=lambda x: x["area"], reverse=True)[:2]
-    person_results = sorted(person_results, key=lambda x: (x["bbox"][0] + x["bbox"][2]) / 2)
-
-    if side == "left":
-        selected = person_results[0]
-    elif side == "right":
-        selected = person_results[1]
-
-    pose_results = inference_topdown(
-        pose_model,
-        frame,
-        [selected["bbox"]],
-        bbox_format="xyxy",
-    )
-
-    return pose_results
+        return bboxes[idx:idx+1]

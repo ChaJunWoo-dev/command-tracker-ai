@@ -7,6 +7,8 @@ from functools import partial
 
 from infra.rabbitmq_client import RabbitMQClient
 from worker.handlers import on_message
+from ai.detector import PersonDetector
+from ai.pose_estimator import PoseEstimator
 from config.constants import RabbitMQConfig
 
 
@@ -19,10 +21,18 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    detector = PersonDetector()
+    pose_estimator = PoseEstimator()
+
     async with RabbitMQClient() as rabbitmq:
         await rabbitmq.consume(
             RabbitMQConfig.VIDEO_PROCESS,
-            partial(on_message, rabbitmq=rabbitmq)
+            partial(
+                on_message,
+                rabbitmq=rabbitmq,
+                detector=detector,
+                pose_estimator=pose_estimator
+            )
         )
         await shutdown_event.wait()
 
