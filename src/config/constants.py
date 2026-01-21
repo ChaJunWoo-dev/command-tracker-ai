@@ -1,5 +1,4 @@
 class S3Config:
-    SIGNED_URL_EXPIRE = 60 * 24
     ORIGINAL_PREFIX = "original"
     PROCESSED_PREFIX = "processed"
 
@@ -11,9 +10,6 @@ class RabbitMQConfig:
 
 
 class Messages:
-    class Success:
-        ANALYZE = "영상 분석을 완료했습니다."
-
     class Error:
         RABBITMQ_NOT_READY = "RabbitMQ 미초기화. init_rabbitmq()를 호출하세요."
 
@@ -76,24 +72,27 @@ class Keypoints:
 
 CHARACTER_CONFIG = {
     "MARISA": {
-        "commands": ["Gladius", "Quadriga", "Phalanx", "Scutum"],
-        "cooldown": {
-            "Gladius": 21,
-            "Quadriga": 24,
-        },
-        "angles": {
+        "commands": {
             "Gladius": {
-                "r_elbow_min": 150,
-                "l_elbow_max": 100,
-                "l_knee_max": 110,
-                "r_knee_min": 150,
+                "input": ["down", "down_right", "right", "plus", "punch"],
+                "cooldown": 18,
+                "angles": {
+                    "r_elbow_min": 150,
+                    "l_elbow_max": 100,
+                    "l_knee_max": 110,
+                    "r_knee_min": 150,
+                },
             },
             "Quadriga": {
-                "r_elbow_min": 150,
-                "l_elbow_min": 150,
-                "r_knee_min": 140,
-                "l_knee_min": 140,
-                "body_lean_max": 50,
+                "input": ["down", "down_right", "right", "kick"],
+                "cooldown": 18,
+                "angles": {
+                    "r_elbow_min": 150,
+                    "l_elbow_min": 150,
+                    "r_knee_min": 140,
+                    "l_knee_min": 140,
+                    "body_lean_max": 50,
+                },
             },
         },
     },

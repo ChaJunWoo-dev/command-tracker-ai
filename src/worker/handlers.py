@@ -8,6 +8,8 @@ from infra.temp_storage import TempStorage
 from ai.detector import PersonDetector
 from ai.pose_estimator import PoseEstimator
 from services.video_analyzer import VideoAnalyzer
+from services.icon_composer import IconComposer
+from services.command_service import MotionRecognizer
 from config.settings import get_config
 from config.constants import RabbitMQConfig, S3Config, ErrorCode, Messages
 from config.exceptions import AppError
@@ -56,17 +58,22 @@ async def on_message(
                     character = data["character"]
                     position = data["position"]
                     analyzer = VideoAnalyzer(detector, pose_estimator, character, position)
+                    icon_composer = IconComposer()
+                    motion_recognizer = MotionRecognizer(character, position)
 
-                    subtitles = []
-                    for result in analyzer.analyze(output_path):
+                    overlays = []
+                    for result in analyzer.analyze(output_path, motion_recognizer):
                         if result["command"]:
-                            subtitles.append({
+                            inputs = motion_recognizer.get_input(result["command"])
+                            image_path = job / f"{result['frame_idx']}.png"
+                            icon_composer.compose(inputs, image_path)
+
+                            overlays.append({
                                 "frame": result["frame_idx"],
-                                "text": result["command"],
-                                "duration": 15
+                                "image_path": image_path,
                             })
 
-                    if not subtitles:
+                    if not overlays:
                         raise AppError(ErrorCode.NO_SUBTITLE, Messages.Error.NO_SUBTITLE)
                 except AppError:
                     raise
@@ -74,7 +81,7 @@ async def on_message(
                     raise AppError(ErrorCode.ANALYZE_FAILED, Messages.Error.ANALYZE_FAILED)
 
                 try:
-                    await ffmpeg.overlay_subtitles(output_path, final_path, subtitles)
+                    await ffmpeg.overlay_images(output_path, final_path, overlays)
                 except Exception as e:
                     raise AppError(ErrorCode.CUT_FAILED, Messages.Error.CUT_FAILED)
 
@@ -82,6 +89,15 @@ async def on_message(
                     await s3.upload_file(str(final_path), processed_s3_key, config.aws.bucket_name)
                 except Exception as e:
                     raise AppError(ErrorCode.UPLOAD_FAILED, Messages.Error.UPLOAD_FAILED)
+
+                try:
+                    message = {
+                        "email": data["email"],
+                        "key": processed_s3_key
+                    }
+                    await rabbitmq.publish(message, RabbitMQConfig.VIDEO_RESULT)
+                except Exception as e:
+                    raise
 
             except AppError as e:
                 message = { "email": data["email"], "detail": e.detail }

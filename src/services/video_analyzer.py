@@ -18,9 +18,12 @@ class VideoAnalyzer:
         self.detector = detector
         self.pose_estimator = pose_estimator
         self.position = position
-        self.motion_recognizer = MotionRecognizer(character, position)
 
-    def analyze(self, video_path: Path) -> Generator[dict, None, None]:
+    def analyze(
+        self,
+        video_path: Path,
+        motion_recognizer: MotionRecognizer
+    ) -> Generator[dict, None, None]:
         """
         영상을 분석하여 프레임별 poses와 발동된 커맨드를 반환
         """
@@ -39,7 +42,7 @@ class VideoAnalyzer:
                 if target_bbox is not None:
                     poses = self.pose_estimator.estimate(frame, target_bbox)
                     if len(poses) > 0:
-                        command = self.motion_recognizer.extract(poses[0])
+                        command = motion_recognizer.extract(poses[0])
 
                 yield {
                     "frame_idx": frame_idx,

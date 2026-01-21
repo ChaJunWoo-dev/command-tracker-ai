@@ -4,6 +4,11 @@ from typing import List
 
 
 class FFmpegClient:
+    STACK_MARGIN = 10
+    MAX_STACK = 10
+    ICON_HEIGHT = 64
+    FPS = 30
+
     async def cut(self, input_path: Path, output_path: Path, start: float, end: float) -> None:
         (
             ffmpeg
@@ -12,36 +17,38 @@ class FFmpegClient:
             .run(quiet=True, overwrite_output=True)
         )
 
-    async def overlay_subtitles(
+    async def overlay_images(
         self,
         input_path: Path,
         output_path: Path,
-        subtitles: List[dict],
-        fps: float = 30.0
+        overlays: List[dict],
     ) -> None:
-        drawtext_filters = []
-        for sub in subtitles:
-            start_time = sub["frame"] / fps
-            duration = sub["duration"] / fps
-            end_time = start_time + duration
-            text = sub["text"]
+        """
+        이미지를 영상 왼쪽에 스택 형태로 오버레이
+        최신 커맨드가 위에 쌓임
+        overlays: [{"frame": int, "image_path": Path}, ...]
+        """
+        input_stream = ffmpeg.input(str(input_path))
 
-            drawtext_filters.append(
-                f"drawtext=text='{text}'"
-                f":fontsize=48"
-                f":fontcolor=white"
-                f":borderw=2"
-                f":bordercolor=black"
-                f":x=(w-text_w)/2"
-                f":y=h-100"
-                f":enable='between(t,{start_time},{end_time})'"
+        current = input_stream.video
+        for stack_idx, overlay in enumerate(overlays):
+            start_time = overlay["frame"] / self.FPS
+            image_path = overlay["image_path"]
+
+            # y값이 작을수록 위에 위치
+            y_pos = f"H-{self.STACK_MARGIN}-{(stack_idx + 1) * (self.ICON_HEIGHT + self.STACK_MARGIN)}"
+
+            img_input = ffmpeg.input(str(image_path))
+
+            current = ffmpeg.overlay(
+                current,
+                img_input,
+                x=str(self.STACK_MARGIN),
+                y=y_pos,
+                enable=f"gte(t,{start_time})"
             )
 
-        filter_str = ",".join(drawtext_filters)
-
-        (
-            ffmpeg
-            .input(str(input_path))
-            .output(str(output_path), vf=filter_str)
+        ffmpeg \
+            .output(current, input_stream.audio, str(output_path)) \
             .run(quiet=True, overwrite_output=True)
-        )
+

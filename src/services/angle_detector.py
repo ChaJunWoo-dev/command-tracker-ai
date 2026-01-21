@@ -1,7 +1,7 @@
 import math
 from config.constants import Keypoints, CHARACTER_CONFIG
 from services.detectors import DETECTORS
-
+from typing import List
 
 def calculate_angle(p1, p2, p3) -> float:
     """세 점으로 각도 계산 (관절들의 각 점)"""
@@ -44,7 +44,7 @@ def extract_angles(kpts):
 
 class AngleBasedDetector:
     def __init__(self, character: str, position: str = "left"):
-        self.config = CHARACTER_CONFIG[character]
+        self.commands = CHARACTER_CONFIG[character]["commands"]
         self.detector = DETECTORS[character]
         self.position = position
         self.cooldown = 0
@@ -57,10 +57,14 @@ class AngleBasedDetector:
         angles = extract_angles(kpts)
         debug(angles)
 
-        command, cooldown = self.detector(angles, self.config)
+        command, cooldown = self.detector(angles, self.commands)
         if command:
             self.cooldown = cooldown
         return command
+
+    def get_input(self, command: str) -> List[str]:
+        """커맨드의 입력 시퀀스 반환"""
+        return self.commands[command]["input"]
 
 
 def debug(angles):

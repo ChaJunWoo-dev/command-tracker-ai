@@ -1,5 +1,5 @@
 from services.angle_detector import AngleBasedDetector
-from typing import Union
+from typing import Union, List
 
 
 class MotionRecognizer:
@@ -17,3 +17,7 @@ class MotionRecognizer:
         kpts = pose.pred_instances.keypoints[0]
 
         return self.detector.detect(kpts)
+
+    def get_input(self, command: str) -> List[str]:
+        """커맨드의 입력 시퀀스 반환"""
+        return self.detector.get_input(command)
