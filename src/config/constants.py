@@ -94,6 +94,29 @@ CHARACTER_CONFIG = {
                     "body_lean_max": 50,
                 },
             },
+            "HeavyKick": {
+                "input": ["kick_h"],
+                "cooldown": 12,
+                "angles": {
+                    "l_elbow_max": 20,
+                    "l_knee_min": 160,
+                    "r_knee_min": 170,
+                },
+            },
+            "Crouch": {
+                "input": ["down"],
+                "cooldown": 12,
+                "angles": {
+                    "l_elbow_min": 120,
+                    "l_elbow_max": 140,
+                    "r_elbow_min": 20,
+                    "r_elbow_max": 45,
+                    "l_knee_min": 70,
+                    "l_knee_max": 90,
+                    "r_knee_min": 140,
+                    "r_knee_max": 150,
+                },
+            },
         },
     },
 }
