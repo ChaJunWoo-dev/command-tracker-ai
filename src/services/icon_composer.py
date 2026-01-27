@@ -8,6 +8,8 @@ ATTACKS_DIR = ASSETS_DIR / "attacks"
 
 ICON_SIZE = 48
 SPACING = 4
+PADDING = 8
+BG_COLOR = (0, 0, 0, 160)
 
 
 class IconComposer:
@@ -15,7 +17,6 @@ class IconComposer:
         self.icon_cache: dict[str, Image.Image] = {}
 
     def _load_icon(self, name: str) -> Image.Image:
-        """아이콘 로드 (캐싱)"""
         if name in self.icon_cache:
             return self.icon_cache[name]
 
@@ -33,15 +34,17 @@ class IconComposer:
         """입력 시퀀스를 조합하여 하나의 이미지로 생성(커맨드 완성)"""
         icons = [self._load_icon(name) for name in inputs]
 
-        total_width = ICON_SIZE * len(icons) + SPACING * (len(icons) - 1)
-        total_height = ICON_SIZE
+        icons_width = ICON_SIZE * len(icons) + SPACING * (len(icons) - 1)
+        total_width = icons_width + PADDING * 2
+        total_height = ICON_SIZE + PADDING * 2
 
-        combined = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
+        combined = Image.new("RGBA", (total_width, total_height), BG_COLOR)
 
-        x_offset = 0
+        x_offset = PADDING
         for icon in icons:
-            combined.paste(icon, (x_offset, 0), icon)
+            combined.paste(icon, (x_offset, PADDING), icon)
             x_offset += ICON_SIZE + SPACING
 
         combined.save(output_path, "PNG")
+
         return output_path
